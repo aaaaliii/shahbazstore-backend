@@ -60,7 +60,48 @@ const settingsSchema = new mongoose.Schema({
       default: 0,
       min: 0
     }
-  }
+  },
+  
+  // Homepage categories (exactly 4 featured categories with images)
+  homepageCategories: [{
+    categoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      required: true
+    },
+    image: {
+      type: String,
+      required: true
+    },
+    position: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 4
+    },
+    title: {
+      type: String,
+      trim: true
+    },
+    subtitle: {
+      type: String,
+      trim: true
+    },
+    link: {
+      type: String,
+      default: '/products',
+      trim: true
+    },
+    linkText: {
+      type: String,
+      default: 'shop now',
+      trim: true
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    }
+  }]
 }, {
   timestamps: true
 });

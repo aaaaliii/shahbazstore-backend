@@ -50,6 +50,11 @@ SMTP_PASS=your-password
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
+# Vercel Blob Storage (Required for file uploads)
+# Get your token from: https://vercel.com/dashboard/stores
+# Or from your Vercel project settings > Storage > Blob
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
 # Elasticsearch (Optional - for advanced search)
 ELASTICSEARCH_ENABLED=false
 ELASTICSEARCH_URL=http://localhost:9200
@@ -58,6 +63,16 @@ ELASTICSEARCH_USERNAME=
 ELASTICSEARCH_PASSWORD=
 ELASTICSEARCH_SSL=false
 ```
+
+**Note:** For local development, you need to set `BLOB_READ_WRITE_TOKEN` to use file uploads. To get your token:
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard/stores)
+2. Create a new Blob Store or select an existing one
+3. Copy the `BLOB_READ_WRITE_TOKEN` from the store settings
+4. Add it to your `.env` file
+
+Alternatively, if your backend is deployed on Vercel, you can find the token in:
+- Vercel Dashboard > Your Project > Settings > Environment Variables
+- Or in the Storage section of your Vercel project
 
 3. (Optional) Set up Elasticsearch for advanced search:
 ```bash
@@ -155,6 +170,9 @@ npm run reindex
 
 ### Upload
 - `POST /api/upload/product-image` - Upload product image (admin only)
+- `POST /api/upload/product-images` - Upload multiple product images (admin only)
+- `POST /api/upload/category-image` - Upload category image (admin only)
+- `POST /api/upload/homepage-category-image` - Upload homepage category image (admin only)
 
 ## Product Variants
 

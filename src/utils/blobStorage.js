@@ -6,9 +6,10 @@ import path from 'path';
  * @param {Buffer} buffer - File buffer
  * @param {string} originalname - Original filename
  * @param {string} fieldname - Field name from form
+ * @param {string} folder - Folder path in blob storage (default: 'products')
  * @returns {Promise<{url: string, pathname: string}>}
  */
-export const uploadToBlob = async (buffer, originalname, fieldname = 'file') => {
+export const uploadToBlob = async (buffer, originalname, fieldname = 'file', folder = 'products') => {
   try {
     // Check if BLOB_READ_WRITE_TOKEN is available
     // On Vercel, this is automatically provided
@@ -17,17 +18,33 @@ export const uploadToBlob = async (buffer, originalname, fieldname = 'file') => 
       throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required. Please set it in your .env file for local development.');
     }
 
+    // On Vercel, check if token is available (it should be auto-provided)
+    if (process.env.VERCEL === '1' && !process.env.BLOB_READ_WRITE_TOKEN) {
+      const errorMsg = 'BLOB_READ_WRITE_TOKEN is missing. Please configure it in Vercel environment variables.';
+      console.error('ERROR:', errorMsg);
+      throw new Error(errorMsg);
+    }
+
     // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(originalname);
     const filename = `${fieldname}-${uniqueSuffix}${ext}`;
-    const pathname = `products/${filename}`;
+    const pathname = `${folder}/${filename}`;
 
-    // Upload to Vercel Blob
+    console.log('Attempting to upload to Vercel Blob:', {
+      pathname,
+      size: buffer.length,
+      contentType: getContentType(ext),
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN
+    });
+
+    // Upload to Vercel Blob with public access
     const blob = await put(pathname, buffer, {
       access: 'public',
       contentType: getContentType(ext),
     });
+
+    console.log('Successfully uploaded to Vercel Blob:', blob.url);
 
     return {
       url: blob.url,
@@ -37,7 +54,15 @@ export const uploadToBlob = async (buffer, originalname, fieldname = 'file') => 
       publicId: blob.pathname,
     };
   } catch (error) {
-    console.error('Error uploading to Vercel Blob:', error);
+    console.error('Error uploading to Vercel Blob:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      folder,
+      filename: originalname,
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN,
+      isVercel: process.env.VERCEL === '1'
+    });
     throw new Error(`Failed to upload file: ${error.message}`);
   }
 };

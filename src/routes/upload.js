@@ -77,4 +77,87 @@ router.post('/product-images', authenticate, authorize('admin'), (req, res, next
   });
 });
 
+// Category image upload endpoint
+router.post('/category-image', authenticate, authorize('admin'), (req, res, next) => {
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      return next(err);
+    }
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    try {
+      // Upload to Vercel Blob in categories folder
+      const blobResult = await uploadToBlob(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.fieldname,
+        'categories' // Upload to categories folder
+      );
+
+      res.json({
+        success: true,
+        image: blobResult.url, // Full URL for storage in DB
+        url: blobResult.url, // Full URL for display
+        publicId: blobResult.pathname // Pathname for reference
+      });
+    } catch (uploadError) {
+      return next(new AppError(`Failed to upload image: ${uploadError.message}`, 500));
+    }
+  });
+});
+
+// Homepage category image upload endpoint
+router.post('/homepage-category-image', authenticate, authorize('admin'), (req, res, next) => {
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      console.error('Multer error in homepage-category-image:', err);
+      return next(err);
+    }
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    try {
+      console.log('Uploading homepage category image:', {
+        filename: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        folder: 'homepage-categories'
+      });
+
+      // Upload to Vercel Blob in homepage-categories folder
+      const blobResult = await uploadToBlob(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.fieldname,
+        'homepage-categories' // Upload to homepage-categories folder
+      );
+
+      console.log('Successfully uploaded homepage category image:', blobResult.url);
+
+      res.json({
+        success: true,
+        image: blobResult.url, // Full URL for storage in DB
+        url: blobResult.url, // Full URL for display
+        publicId: blobResult.pathname // Pathname for reference
+      });
+    } catch (uploadError) {
+      console.error('Error uploading homepage category image:', {
+        message: uploadError.message,
+        stack: uploadError.stack,
+        name: uploadError.name
+      });
+      return next(new AppError(`Failed to upload image: ${uploadError.message}`, 500));
+    }
+  });
+});
+
 export default router;

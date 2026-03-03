@@ -127,7 +127,19 @@ export const settingsSchema = Joi.object({
   deliveryCharges: Joi.object({
     amount: Joi.number().min(0).default(0),
     freeDeliveryThreshold: Joi.number().min(0).default(0)
-  }).optional()
+  }).optional(),
+  homepageCategories: Joi.array().items(
+    Joi.object({
+      categoryId: Joi.string().required(),
+      image: Joi.string().required(),
+      position: Joi.number().integer().min(1).max(4).required(),
+      title: Joi.string().trim().allow(''),
+      subtitle: Joi.string().trim().allow(''),
+      link: Joi.string().trim().allow(''),
+      linkText: Joi.string().trim().allow(''),
+      isActive: Joi.boolean().default(true)
+    })
+  ).length(4).optional() // Must be exactly 4 items
 });
 
 export const orderItemSchema = Joi.object({

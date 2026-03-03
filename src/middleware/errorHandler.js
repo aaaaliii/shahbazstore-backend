@@ -44,10 +44,20 @@ export const errorHandler = (err, req, res, next) => {
       });
     } else {
       console.error('ERROR 💥', err);
+      // For upload-related errors, include the message even in production for better UX
+      const isUploadError = err.message && (
+        err.message.includes('upload') || 
+        err.message.includes('blob') || 
+        err.message.includes('file') ||
+        err.message.includes('BLOB_READ_WRITE_TOKEN')
+      );
+      
       res.status(500).json({
         success: false,
         status: 'error',
-        message: 'Something went wrong!'
+        message: isUploadError ? err.message : 'Something went wrong!',
+        // Include error field for frontend compatibility
+        error: isUploadError ? err.message : 'Something went wrong!'
       });
     }
   }
