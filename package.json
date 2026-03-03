@@ -1,0 +1,37 @@
+{
+  "name": "shahbaz-store-backend",
+  "version": "1.0.0",
+  "description": "E-commerce backend API",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "seed": "node src/seeders/seed.js",
+    "seed:users": "node src/seeders/userSeeder.js",
+    "hash-passwords": "node src/scripts/hashExistingPasswords.js",
+    "reindex": "node src/scripts/reindexProducts.js"
+  },
+  "keywords": [
+    "ecommerce",
+    "api",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@elastic/elasticsearch": "^9.3.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
