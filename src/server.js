@@ -53,10 +53,58 @@ if (process.env.ELASTICSEARCH_ENABLED === 'true') {
 
 const app = express();
 
-// CORS must be the FIRST middleware to handle preflight requests before ngrok intercepts them
-// CORS configuration - allow all origins (for development with ngrok and cross-machine access)
+// CORS configuration - optimized for Vercel deployment
+// Handle preflight requests FIRST to prevent redirect issues
+// This MUST be before any other middleware to catch OPTIONS requests before Vercel redirects them
+app.use((req, res, next) => {
+  // Handle OPTIONS requests immediately to prevent redirects
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    
+    // Set CORS headers for preflight
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With, Accept, Origin, Referer, Access-Control-Request-Method, Access-Control-Request-Headers');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Return 204 immediately without redirect - CRITICAL for Vercel
+    return res.status(204).end();
+  }
+  next();
+});
+
+// Also handle OPTIONS with explicit route (backup)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for preflight
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With, Accept, Origin, Referer, Access-Control-Request-Method, Access-Control-Request-Headers');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  // Return 204 immediately without redirect
+  return res.status(204).end();
+});
+
+// CORS configuration - allow all origins (for production and development)
 const corsOptions = {
-  origin: true, // Allow all origins - simplifies configuration for development
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    // Allow all origins
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
@@ -75,27 +123,19 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Apply CORS middleware FIRST - before any other middleware
+// Apply CORS middleware
 app.use(cors(corsOptions));
-
-// Handle ALL preflight OPTIONS requests explicitly and immediately
-// This must happen before ngrok can intercept the request
-app.options('*', (req, res) => {
-  // Set CORS headers explicitly for preflight
-  const origin = req.headers.origin || '*';
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With, Accept, Origin, Referer, Access-Control-Request-Method, Access-Control-Request-Headers');
-  res.header('Access-Control-Max-Age', '86400'); // 24 hours
-  return res.status(204).end();
-});
 
 // Additional CORS headers for all requests (backup)
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
   // Set CORS headers explicitly for all responses
-  const origin = req.headers.origin || '*';
-  res.header('Access-Control-Allow-Origin', origin);
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, ngrok-skip-browser-warning, X-Requested-With, Accept, Origin, Referer, Access-Control-Request-Method, Access-Control-Request-Headers');
