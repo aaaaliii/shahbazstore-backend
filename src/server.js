@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import mongoose from 'mongoose';
 import connectDB from './config/database.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import path from 'path';
@@ -22,8 +23,12 @@ import uploadRoutes from './routes/upload.js';
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
+// Connect to database (async, but don't block serverless function initialization)
+// Connection will be established on first request if not already connected
+connectDB().catch(err => {
+  console.error('Initial database connection failed:', err.message);
+  console.log('Will retry on first request...');
+});
 
 // Initialize Elasticsearch if enabled
 if (process.env.ELASTICSEARCH_ENABLED === 'true') {
@@ -100,10 +105,35 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Ensure database is connected before handling requests (important for serverless)
+app.use(async (req, res, next) => {
+  // Skip health check endpoint
+  if (req.path === '/api/health') {
+    return next();
+  }
+  
+  // Check if MongoDB is connected
+  if (mongoose.connection.readyState !== 1) {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error('Database connection failed in middleware:', error.message);
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection unavailable. Please try again later.'
+      });
+    }
+  }
+  next();
+});
+
+// Serve static files (only for local development, not needed on Vercel)
+// Vercel Blob handles file serving via CDN
+if (process.env.VERCEL !== '1') {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -137,6 +167,12 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+// Export for Vercel serverless functions
+export default app;
+
+// Only listen when running locally (not on Vercel)
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  });
+}

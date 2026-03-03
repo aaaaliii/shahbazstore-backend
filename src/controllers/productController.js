@@ -376,8 +376,16 @@ export const createProduct = async (req, res, next) => {
 
     // Handle images - support both file uploads and pre-uploaded URLs
     if (req.files && req.files.length > 0) {
-      // New file uploads
-      const uploadedImages = req.files.map(file => `/uploads/products/${file.filename}`);
+      // Upload files to Vercel Blob
+      const { uploadMultipleToBlob } = await import('../utils/blobStorage.js');
+      const filesToUpload = req.files.map(file => ({
+        buffer: file.buffer,
+        originalname: file.originalname,
+        fieldname: file.fieldname
+      }));
+      
+      const uploadedBlobs = await uploadMultipleToBlob(filesToUpload);
+      const uploadedImages = uploadedBlobs.map(blob => blob.url);
       
       // If main image not set, use first uploaded image as main image
       if (!productData.image && uploadedImages.length > 0) {
@@ -505,7 +513,16 @@ export const updateProduct = async (req, res, next) => {
     
     // If new files are uploaded, append them (or set if no images were in body)
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map(file => `/uploads/products/${file.filename}`);
+      // Upload files to Vercel Blob
+      const { uploadMultipleToBlob } = await import('../utils/blobStorage.js');
+      const filesToUpload = req.files.map(file => ({
+        buffer: file.buffer,
+        originalname: file.originalname,
+        fieldname: file.fieldname
+      }));
+      
+      const uploadedBlobs = await uploadMultipleToBlob(filesToUpload);
+      const newImages = uploadedBlobs.map(blob => blob.url);
       
       // If main image not set, use first uploaded image as main image
       if (!updateData.image && newImages.length > 0) {
